@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 interface IFiles extends Document {
-  fileName: string;
+  filename: string;
   content: string;
   workspaceId: Schema.Types.ObjectId;
   userId: Schema.Types.ObjectId;
@@ -9,7 +9,7 @@ interface IFiles extends Document {
 
 const fileSchema = new Schema<IFiles>(
   {
-    fileName: {
+    filename: {
       type: String,
       required: true,
     },

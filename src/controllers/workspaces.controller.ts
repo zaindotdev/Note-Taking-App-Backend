@@ -1,16 +1,15 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { WorkspaceModel } from "../models/workspaces.models.js";
 import { AsyncHandler } from "../utils/AsyncHandler.js";
 import { httpResponse } from "../utils/httpResponse.js";
-import { RequestWithUser } from "../utils/types.js";
 import { UserModel } from "../models/users.models.js";
 import mongoose from "mongoose";
 
 export const getUserWorkspaces = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const user = req.user;
 
-    const storedUser = await UserModel.findById(user._id);
+    const storedUser = await UserModel.findById(user?._id);
 
     if (!storedUser) {
       return res.status(401).json(httpResponse(401, "Unauthorized", null));
@@ -31,7 +30,7 @@ export const getUserWorkspaces = AsyncHandler(
 );
 
 export const createWorkspace = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const { workspaceName } = req.body;
     if (!workspaceName) {
       return res
@@ -55,7 +54,7 @@ export const createWorkspace = AsyncHandler(
 );
 
 export const getWorkspaceById = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const { workspaceId } = req.params;
 
     if (!workspaceId) {
@@ -77,7 +76,7 @@ export const getWorkspaceById = AsyncHandler(
 );
 
 export const getWorkspaces = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const workspaces = await WorkspaceModel.find();
 
     if (!workspaces) {
@@ -91,7 +90,7 @@ export const getWorkspaces = AsyncHandler(
 );
 
 export const deleteWorkspace = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const { workspaceId } = req.params;
     if (!workspaceId) {
       return res
@@ -110,7 +109,7 @@ export const deleteWorkspace = AsyncHandler(
 );
 
 export const updateWorkspace = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const { workspaceId } = req.params;
     const { workspaceName } = req.body;
     if (!workspaceId) {

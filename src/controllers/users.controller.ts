@@ -1,8 +1,7 @@
 import { AsyncHandler } from "../utils/AsyncHandler.js";
 import { httpResponse } from "../utils/httpResponse.js";
 import type { Request, Response } from "express";
-import { IUser, UserModel } from "../models/users.models.js";
-import { RequestWithUser } from "../utils/types.js";
+import { UserModel } from "../models/users.models.js";
 import { FileModel } from "../models/files.models.js";
 import mongoose from "mongoose";
 import { WorkspaceModel } from "../models/workspaces.models.js";
@@ -44,7 +43,7 @@ export const register = AsyncHandler(async (req: Request, res: Response) => {
 
   return res
     .status(201)
-    .json(httpResponse(201, "User created", { user: getUser }));
+    .json(httpResponse(201, "User Registered Successfully", { user: getUser }));
 });
 
 export const login = AsyncHandler(async (req: Request, res: Response) => {
@@ -100,43 +99,44 @@ export const login = AsyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .cookie("accessToken", accessToken, options as any)
     .cookie("refreshToken", refreshToken, options as any)
-    .json(httpResponse(200, "User Logged in", { user: getUser, accessToken }));
+    .json(
+      httpResponse(200, "User Logged In Successfully", {
+        user: getUser,
+        accessToken,
+      })
+    );
 });
 
-export const getUser = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
-    const user = req.user;
-    if (!user) {
-      return res.status(401).json(httpResponse(401, "Unauthorized", null));
-    }
-
-    return res.status(200).json(httpResponse(200, "User found", user));
+export const getUser = AsyncHandler(async (req: Request, res: Response) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json(httpResponse(401, "Unauthorized", null));
   }
-);
 
-export const logout = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
-    if (!req.user) {
-      return res.status(401).json(httpResponse(401, "Unauthorized", null));
-    }
+  return res.status(200).json(httpResponse(200, "User found", user));
+});
 
-    const options = {
-      httpOnly: true,
-      secure: true,
-    };
-    return res
-      .status(200)
-      .clearCookie("accessToken", options)
-      .clearCookie("refreshToken", options)
-      .json(httpResponse(200, "User logged out", null));
+export const logout = AsyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json(httpResponse(401, "Unauthorized", null));
   }
-);
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(httpResponse(200, "User logged out", null));
+});
 
 export const getUserWorkspaces = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const user = req.user;
 
-    const storedUser = await UserModel.findById(user._id);
+    const storedUser = await UserModel.findById(user?._id);
 
     if (!storedUser) {
       return res.status(401).json(httpResponse(401, "Unauthorized", null));
@@ -167,9 +167,9 @@ export const getUserWorkspaces = AsyncHandler(
 );
 
 export const getUserFiles = AsyncHandler(
-  async (req: RequestWithUser, res: Response) => {
+  async (req: Request, res: Response) => {
     const user = req.user;
-    const storedUser = await UserModel.findById(user._id);
+    const storedUser = await UserModel.findById(user?._id);
 
     if (!storedUser) {
       return res.status(401).json(httpResponse(401, "Unauthorized", null));
@@ -204,5 +204,47 @@ export const getUserFiles = AsyncHandler(
     return res
       .status(200)
       .json(httpResponse(200, "Files found", { user: storedUser }));
+  }
+);
+
+export const getRefreshToken = AsyncHandler(
+  async (req: Request, res: Response) => {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json(httpResponse(401, "Unauthorized"));
+    }
+
+    const storedUser = await UserModel.findById(user?._id);
+    if (!storedUser) {
+      return res.status(400).json(httpResponse(400, "User not found"));
+    }
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+      storedUser._id as any
+    );
+
+    if (!accessToken && !refreshToken) {
+      return res
+        .status(400)
+        .json(httpResponse(400, "Unable to generate the tokens"));
+    }
+
+    storedUser.refreshToken = refreshToken;
+    await user.save();
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        httpResponse(200, "Access and Refresh Tokens generated!", {
+          accessToken,
+          refreshToken,
+        })
+      );
   }
 );
